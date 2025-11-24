@@ -14,6 +14,7 @@ import bookRoutes from './routes/books.js';
 import searchRoutes from './routes/search.js';
 import goalRoutes from './routes/goals.js';
 import sessionRoutes from './routes/sessions.js';
+import collectionRoutes from './routes/collections.js';
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +67,7 @@ app.use('/api/books', bookRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/collections', collectionRoutes);
 
 // 404 handler
 app.use((req, res) => {

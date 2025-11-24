@@ -3,6 +3,8 @@ import User from './User.js';
 import Book from './Book.js';
 import ReadingSession from './ReadingSession.js';
 import ReadingGoal from './ReadingGoal.js';
+import Collection from './Collection.js';
+import BookCollection from './BookCollection.js';
 
 // Define relationships
 User.hasMany(Book, {
@@ -38,6 +40,33 @@ ReadingGoal.belongsTo(User, {
   as: 'user'
 });
 
+// Collection relationships
+User.hasMany(Collection, {
+  foreignKey: 'userId',
+  as: 'collections',
+  onDelete: 'CASCADE'
+});
+
+Collection.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// Many-to-many: Books <-> Collections
+Book.belongsToMany(Collection, {
+  through: BookCollection,
+  foreignKey: 'bookId',
+  otherKey: 'collectionId',
+  as: 'collections'
+});
+
+Collection.belongsToMany(Book, {
+  through: BookCollection,
+  foreignKey: 'collectionId',
+  otherKey: 'bookId',
+  as: 'books'
+});
+
 // Sync database
 export const syncDatabase = async (options = {}) => {
   try {
@@ -57,5 +86,7 @@ export {
   User,
   Book,
   ReadingSession,
-  ReadingGoal
+  ReadingGoal,
+  Collection,
+  BookCollection
 };
