@@ -29,6 +29,14 @@ const ReadingSession = sequelize.define('ReadingSession', {
     allowNull: true,
     comment: 'Reading duration in minutes'
   },
+  startTime: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   date: {
     type: DataTypes.DATEONLY,
     allowNull: false,

@@ -2,6 +2,7 @@ import sequelize from '../config/database.js';
 import User from './User.js';
 import Book from './Book.js';
 import ReadingSession from './ReadingSession.js';
+import ReadingGoal from './ReadingGoal.js';
 
 // Define relationships
 User.hasMany(Book, {
@@ -26,6 +27,17 @@ ReadingSession.belongsTo(Book, {
   as: 'book'
 });
 
+User.hasMany(ReadingGoal, {
+  foreignKey: 'userId',
+  as: 'readingGoals',
+  onDelete: 'CASCADE'
+});
+
+ReadingGoal.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // Sync database
 export const syncDatabase = async (options = {}) => {
   try {
@@ -44,5 +56,6 @@ export {
   sequelize,
   User,
   Book,
-  ReadingSession
+  ReadingSession,
+  ReadingGoal
 };

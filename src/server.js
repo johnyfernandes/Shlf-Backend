@@ -9,6 +9,8 @@ import { syncDatabase } from './models/index.js';
 import authRoutes from './routes/auth.js';
 import bookRoutes from './routes/books.js';
 import searchRoutes from './routes/search.js';
+import goalRoutes from './routes/goals.js';
+import sessionRoutes from './routes/sessions.js';
 
 // Load environment variables
 dotenv.config();
@@ -56,6 +58,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 // 404 handler
 app.use((req, res) => {
