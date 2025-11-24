@@ -3,7 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import { syncDatabase } from './models/index.js';
+import { Umzug, SequelizeStorage } from 'umzug';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import sequelize from './config/database.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -14,6 +17,9 @@ import sessionRoutes from './routes/sessions.js';
 
 // Load environment variables
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,11 +86,44 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Initialize database migrations
+const runMigrations = async () => {
+  const umzug = new Umzug({
+    migrations: {
+      glob: join(__dirname, 'database/migrations/*.js'),
+      resolve: ({ name, path, context }) => {
+        const migration = import(path);
+        return {
+          name,
+          up: async () => (await migration).up(context),
+          down: async () => (await migration).down(context),
+        };
+      },
+    },
+    context: sequelize.getQueryInterface(),
+    storage: new SequelizeStorage({ sequelize }),
+    logger: console,
+  });
+
+  const pending = await umzug.pending();
+  if (pending.length > 0) {
+    console.log(`📦 Running ${pending.length} pending migration(s)...`);
+    await umzug.up();
+    console.log('✅ Migrations completed');
+  } else {
+    console.log('✅ Database schema is up to date');
+  }
+};
+
 // Initialize database and start server
 const startServer = async () => {
   try {
-    // Sync database
-    await syncDatabase({ alter: true });
+    // Connect to database
+    await sequelize.authenticate();
+    console.log('✅ Database connection established');
+
+    // Run migrations (production-safe)
+    await runMigrations();
 
     // Start server
     app.listen(PORT, () => {
