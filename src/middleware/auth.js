@@ -85,3 +85,40 @@ export const deviceIdMiddleware = (req, res, next) => {
 
   next();
 };
+
+// Strict: if Authorization header exists and is invalid, return 401. Otherwise fall back to device.
+export const authOrDeviceMiddleware = async (req, res, next) => {
+  try {
+    const tokenHeader = req.header('Authorization');
+    const token = tokenHeader?.replace('Bearer ', '');
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findByPk(decoded.userId, {
+          attributes: { exclude: ['password'] }
+        });
+
+        if (!user) {
+          return res.status(401).json({ success: false, error: 'User not found' });
+        }
+
+        req.user = user;
+        req.userId = user.id;
+        return next();
+      } catch (err) {
+        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+      }
+    }
+
+    const deviceId = req.header('X-Device-ID');
+    if (deviceId) {
+      req.deviceId = deviceId;
+      return next();
+    }
+
+    return res.status(401).json({ success: false, error: 'User or device must be provided' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Authentication failed' });
+  }
+};

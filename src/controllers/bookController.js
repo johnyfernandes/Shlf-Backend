@@ -31,14 +31,15 @@ export const addBook = async (req, res) => {
       readingStatus
     } = req.body;
 
-    // Check if book already exists for this user/device
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    // Check if book already exists for this user
     const existingBook = await Book.findOne({
       where: {
         openLibraryId,
-        [Op.or]: [
-          { userId: req.userId || null },
-          { deviceId: req.deviceId || null }
-        ]
+        userId: req.userId
       }
     });
 
@@ -68,8 +69,8 @@ export const addBook = async (req, res) => {
 
     // Create book
     const book = await Book.create({
-      userId: req.userId || null,
-      deviceId: req.deviceId || null,
+      userId: req.userId,
+      deviceId: null,
       openLibraryId,
       isbn,
       ...bookData,
@@ -108,18 +109,11 @@ export const getBooks = async (req, res) => {
     const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
 
-    // Filter by user or device
-    if (req.userId) {
-      where.userId = req.userId;
-    } else if (req.deviceId) {
-      where.deviceId = req.deviceId;
-      where.userId = null;
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID or Device ID required'
-      });
+    // Require auth
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
     }
+    where.userId = req.userId;
 
     // Filter by reading status
     if (status) {
@@ -147,12 +141,6 @@ export const getBooks = async (req, res) => {
       ]
     });
 
-    // Get book slots info for anonymous users
-    let bookSlots = null;
-    if (!req.userId && req.deviceId) {
-      bookSlots = await getRemainingBookSlots(req.deviceId);
-    }
-
     res.json({
       success: true,
       data: {
@@ -162,8 +150,7 @@ export const getBooks = async (req, res) => {
           page: parseInt(page),
           limit: parseInt(limit),
           totalPages: Math.ceil(count / limit)
-        },
-        bookSlots
+        }
       }
     });
   } catch (error) {
@@ -182,15 +169,11 @@ export const getBook = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const where = { id };
-
-    // Ensure user can only access their own books
-    if (req.userId) {
-      where.userId = req.userId;
-    } else if (req.deviceId) {
-      where.deviceId = req.deviceId;
-      where.userId = null;
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
     }
+
+    const where = { id, userId: req.userId };
 
     const book = await Book.findOne({
       where,
@@ -243,9 +226,6 @@ export const updateBook = async (req, res) => {
 
     if (req.userId) {
       where.userId = req.userId;
-    } else if (req.deviceId) {
-      where.deviceId = req.deviceId;
-      where.userId = null;
     }
 
     const book = await Book.findOne({ where });
@@ -326,9 +306,6 @@ export const deleteBook = async (req, res) => {
 
     if (req.userId) {
       where.userId = req.userId;
-    } else if (req.deviceId) {
-      where.deviceId = req.deviceId;
-      where.userId = null;
     }
 
     const book = await Book.findOne({ where });
@@ -363,14 +340,12 @@ export const addReadingSession = async (req, res) => {
     const { bookId } = req.params;
     const { startPage, endPage, duration, date, notes } = req.body;
 
-    // Verify book ownership
-    const where = { id: bookId };
-    if (req.userId) {
-      where.userId = req.userId;
-    } else if (req.deviceId) {
-      where.deviceId = req.deviceId;
-      where.userId = null;
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
     }
+
+    // Verify book ownership
+    const where = { id: bookId, userId: req.userId };
 
     const book = await Book.findOne({ where });
 
@@ -418,12 +393,10 @@ export const getReadingStats = async (req, res) => {
   try {
     const where = {};
 
-    if (req.userId) {
-      where.userId = req.userId;
-    } else if (req.deviceId) {
-      where.deviceId = req.deviceId;
-      where.userId = null;
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
     }
+    where.userId = req.userId;
 
     const books = await Book.findAll({ where });
 

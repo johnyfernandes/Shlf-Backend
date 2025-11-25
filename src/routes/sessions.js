@@ -7,13 +7,12 @@ import {
   updateSession,
   deleteSession
 } from '../controllers/sessionController.js';
-import { optionalAuthMiddleware, deviceIdMiddleware } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Apply middleware
-router.use(deviceIdMiddleware);
-router.use(optionalAuthMiddleware);
+// Require auth
+router.use(authMiddleware);
 
 // Get all sessions for user/device
 router.get('/', getAllSessions);

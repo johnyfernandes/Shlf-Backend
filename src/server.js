@@ -70,6 +70,12 @@ if (RATE_LIMIT_ENABLED) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Disable response caching to avoid stale authenticated data
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({

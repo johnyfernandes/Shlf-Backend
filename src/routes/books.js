@@ -9,16 +9,13 @@ import {
   addReadingSession,
   getReadingStats
 } from '../controllers/bookController.js';
-import { optionalAuthMiddleware, deviceIdMiddleware } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 import { bookLimitMiddleware } from '../middleware/bookLimit.js';
 
 const router = express.Router();
 
-// Apply device ID middleware to all routes
-router.use(deviceIdMiddleware);
-
-// Apply optional auth middleware to all routes
-router.use(optionalAuthMiddleware);
+// Require auth for all routes
+router.use(authMiddleware);
 
 // Get all books
 router.get('/', getBooks);

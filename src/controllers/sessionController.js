@@ -2,22 +2,16 @@ import { Op } from 'sequelize';
 import { ReadingSession, Book } from '../models/index.js';
 import { validationResult } from 'express-validator';
 
-const buildBookOwnershipWhere = (bookId, userId, deviceId) => {
+const buildBookOwnershipWhere = (bookId, userId) => {
   if (userId) {
     return { id: bookId, userId };
-  }
-  if (deviceId) {
-    return { id: bookId, deviceId, userId: null };
   }
   return null;
 };
 
-const buildOwnedBookWhere = (userId, deviceId) => {
+const buildOwnedBookWhere = (userId) => {
   if (userId) {
     return { userId };
-  }
-  if (deviceId) {
-    return { deviceId, userId: null };
   }
   return null;
 };
@@ -47,18 +41,17 @@ export const createSession = async (req, res) => {
 
     const { bookId, startPage, endPage, duration, startTime, endTime, date, notes } = req.body;
     const userId = req.userId;
-    const deviceId = req.deviceId;
 
-    const ownershipWhere = buildBookOwnershipWhere(bookId, userId, deviceId);
+    const ownershipWhere = buildBookOwnershipWhere(bookId, userId);
 
     if (!ownershipWhere) {
       return res.status(401).json({
         success: false,
-        error: 'User or device must be provided'
+        error: 'User must be provided'
       });
     }
 
-    // Verify book belongs to user/device
+    // Verify book belongs to user
     const book = await Book.findOne({ where: ownershipWhere });
 
     if (!book) {
@@ -104,18 +97,17 @@ export const getBookSessions = async (req, res) => {
   try {
     const { bookId } = req.params;
     const userId = req.userId;
-    const deviceId = req.deviceId;
 
-    const ownershipWhere = buildBookOwnershipWhere(bookId, userId, deviceId);
+    const ownershipWhere = buildBookOwnershipWhere(bookId, userId);
 
     if (!ownershipWhere) {
       return res.status(401).json({
         success: false,
-        error: 'User or device must be provided'
+        error: 'User must be provided'
       });
     }
 
-    // Verify book belongs to user/device
+    // Verify book belongs to user
     const book = await Book.findOne({ where: ownershipWhere });
 
     if (!book) {
@@ -149,18 +141,17 @@ export const getBookSessions = async (req, res) => {
 export const getAllSessions = async (req, res) => {
   try {
     const userId = req.userId;
-    const deviceId = req.deviceId;
 
-    const ownedBookWhere = buildOwnedBookWhere(userId, deviceId);
+    const ownedBookWhere = buildOwnedBookWhere(userId);
 
     if (!ownedBookWhere) {
       return res.status(401).json({
         success: false,
-        error: 'User or device must be provided'
+        error: 'User must be provided'
       });
     }
 
-    // Get all user's/device's books
+    // Get all user's books
     const books = await Book.findAll({
       where: ownedBookWhere,
       attributes: ['id']
@@ -203,14 +194,13 @@ export const updateSession = async (req, res) => {
     const { id } = req.params;
     const { startPage, endPage, duration, startTime, endTime, date, notes } = req.body;
     const userId = req.userId;
-    const deviceId = req.deviceId;
 
-    const ownershipWhere = buildOwnedBookWhere(userId, deviceId);
+    const ownershipWhere = buildOwnedBookWhere(userId);
 
     if (!ownershipWhere) {
       return res.status(401).json({
         success: false,
-        error: 'User or device must be provided'
+        error: 'User must be provided'
       });
     }
 
@@ -269,16 +259,7 @@ export const deleteSession = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
-    const deviceId = req.deviceId;
-
-    const ownershipWhere = buildOwnedBookWhere(userId, deviceId);
-
-    if (!ownershipWhere) {
-      return res.status(401).json({
-        success: false,
-        error: 'User or device must be provided'
-      });
-    }
+    const ownershipWhere = buildOwnedBookWhere(userId);
 
     const session = await ReadingSession.findOne({
       where: { id },
