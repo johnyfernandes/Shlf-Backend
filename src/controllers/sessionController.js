@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { ReadingSession, Book } from '../models/index.js';
 import { validationResult } from 'express-validator';
 
@@ -17,6 +18,16 @@ const buildOwnedBookWhere = (userId, deviceId) => {
   }
   if (deviceId) {
     return { deviceId, userId: null };
+  }
+  return null;
+};
+
+const validatePages = (startPage, endPage, pageCount) => {
+  if (startPage !== undefined && endPage !== undefined && endPage < startPage) {
+    return 'endPage cannot be less than startPage';
+  }
+  if (pageCount && endPage !== undefined && endPage > pageCount) {
+    return 'endPage cannot exceed book page count';
   }
   return null;
 };
@@ -55,6 +66,11 @@ export const createSession = async (req, res) => {
         success: false,
         error: 'Book not found'
       });
+    }
+
+    const pageError = validatePages(startPage, endPage, book.pageCount);
+    if (pageError) {
+      return res.status(400).json({ success: false, error: pageError });
     }
 
     const session = await ReadingSession.create({
@@ -212,6 +228,14 @@ export const updateSession = async (req, res) => {
         success: false,
         error: 'Session not found'
       });
+    }
+
+    const newStart = startPage ?? session.startPage;
+    const newEnd = endPage ?? session.endPage;
+
+    const pageError = validatePages(newStart, newEnd, session.book?.pageCount);
+    if (pageError) {
+      return res.status(400).json({ success: false, error: pageError });
     }
 
     // Update fields

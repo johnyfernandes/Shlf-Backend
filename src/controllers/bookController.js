@@ -273,6 +273,12 @@ export const updateBook = async (req, res) => {
     }
 
     if (currentPage !== undefined) {
+      if (book.pageCount && currentPage > book.pageCount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Current page cannot exceed total page count'
+        });
+      }
       updates.currentPage = currentPage;
     }
 
