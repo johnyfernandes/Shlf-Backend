@@ -60,23 +60,12 @@ A comprehensive backend API for the Shlf book tracking application. Built with N
    cp .env.example .env
    ```
 
-   Edit `.env` with your configuration:
-   ```env
-   PORT=3000
-   NODE_ENV=development
-
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_NAME=shlf_db
-   DB_USER=postgres
-   DB_PASSWORD=your_password
-
-   JWT_SECRET=your_super_secret_jwt_key
-   JWT_EXPIRES_IN=7d
-
-   OPEN_LIBRARY_API_BASE=https://openlibrary.org
-   CORS_ORIGIN=*
-   ```
+   Update `.env` with your values:
+   - Database: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+   - Auth: set a strong `JWT_SECRET`; adjust `JWT_EXPIRES_IN` if needed
+   - CORS (browser-only): native iOS/Android are not restricted by CORS. Leave `CORS_ORIGINS=*` for mobile-only, or set to web origins if you add a browser frontend (e.g., `https://shlf.app,https://app.shlf.app`).
+   - Rate limit: `RATE_LIMIT_ENABLED`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`
+   - Open Library: `OPEN_LIBRARY_TIMEOUT_MS` and `OPEN_LIBRARY_API_BASE` (default is fine)
 
 5. **Start the server**
    ```bash

@@ -12,7 +12,6 @@ import sequelize from './config/database.js';
 import authRoutes from './routes/auth.js';
 import bookRoutes from './routes/books.js';
 import searchRoutes from './routes/search.js';
-import goalRoutes from './routes/goals.js';
 import sessionRoutes from './routes/sessions.js';
 import collectionRoutes from './routes/collections.js';
 
@@ -25,16 +24,31 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (needed for correct client IPs behind load balancers)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
+const configuredOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const allowAllOrigins = configuredOrigins.length === 0 || configuredOrigins.includes('*');
+const allowCredentials = (process.env.CORS_ALLOW_CREDENTIALS ?? 'true').toLowerCase() === 'true';
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
+  origin: allowAllOrigins ? true : configuredOrigins,
+  credentials: !allowAllOrigins && allowCredentials
 }));
 
+if (allowAllOrigins) {
+  console.warn('⚠️  CORS is allowing all origins. This is fine for native/mobile clients; set CORS_ORIGINS to web origins if you add a browser frontend.');
+}
+
 // Rate limiting
+const RATE_LIMIT_ENABLED = (process.env.RATE_LIMIT_ENABLED ?? 'true').toLowerCase() !== 'false';
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
@@ -46,7 +60,11 @@ const limiter = rateLimit({
   legacyHeaders: false
 });
 
-app.use('/api/', limiter);
+if (RATE_LIMIT_ENABLED) {
+  app.use('/api/', limiter);
+} else {
+  console.warn('⚠️  Rate limiting is disabled (RATE_LIMIT_ENABLED=false)');
+}
 
 // Body parser middleware
 app.use(express.json());
@@ -65,7 +83,6 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/search', searchRoutes);
-app.use('/api/goals', goalRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/collections', collectionRoutes);
 

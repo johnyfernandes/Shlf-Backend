@@ -2,6 +2,14 @@ import axios from 'axios';
 
 const OPEN_LIBRARY_BASE = process.env.OPEN_LIBRARY_API_BASE || 'https://openlibrary.org';
 const COVER_BASE = 'https://covers.openlibrary.org/b';
+const OPEN_LIBRARY_TIMEOUT_MS = Number(process.env.OPEN_LIBRARY_TIMEOUT_MS) || 5000;
+
+const openLibraryClient = axios.create({
+  baseURL: OPEN_LIBRARY_BASE,
+  timeout: OPEN_LIBRARY_TIMEOUT_MS,
+  maxContentLength: 5 * 1024 * 1024,
+  maxBodyLength: 5 * 1024 * 1024
+});
 
 /**
  * Search for books using Open Library Search API
@@ -11,13 +19,15 @@ const COVER_BASE = 'https://covers.openlibrary.org/b';
  */
 export const searchBooks = async (query, page = 1, limit = 10) => {
   try {
-    const offset = (page - 1) * limit;
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+    const offset = (safePage - 1) * safeLimit;
 
-    const response = await axios.get(`${OPEN_LIBRARY_BASE}/search.json`, {
+    const response = await openLibraryClient.get('/search.json', {
       params: {
         q: query,
         offset,
-        limit,
+        limit: safeLimit,
         fields: 'key,title,subtitle,author_name,author_key,first_publish_year,isbn,cover_i,number_of_pages_median,subject,language'
       }
     });
@@ -29,9 +39,9 @@ export const searchBooks = async (query, page = 1, limit = 10) => {
       data: {
         results,
         total: response.data.numFound,
-        page,
-        limit,
-        hasMore: offset + limit < response.data.numFound
+        page: safePage,
+        limit: safeLimit,
+        hasMore: offset + safeLimit < response.data.numFound
       }
     };
   } catch (error) {
@@ -50,11 +60,11 @@ export const getBookDetails = async (workId) => {
     const cleanWorkId = workId.replace(/^\/works\//, '');
 
     // Get work details
-    const workResponse = await axios.get(`${OPEN_LIBRARY_BASE}/works/${cleanWorkId}.json`);
+    const workResponse = await openLibraryClient.get(`/works/${cleanWorkId}.json`);
     const work = workResponse.data;
 
     // Get editions to find more details (ISBN, page count, etc.)
-    const editionsResponse = await axios.get(`${OPEN_LIBRARY_BASE}/works/${cleanWorkId}/editions.json`, {
+    const editionsResponse = await openLibraryClient.get(`/works/${cleanWorkId}/editions.json`, {
       params: {
         limit: 1
       }
@@ -78,13 +88,13 @@ export const getBookDetails = async (workId) => {
  */
 export const getBookByISBN = async (isbn) => {
   try {
-    const response = await axios.get(`${OPEN_LIBRARY_BASE}/isbn/${isbn}.json`);
+    const response = await openLibraryClient.get(`/isbn/${isbn}.json`);
     const edition = response.data;
 
     // If edition has a work, get the work details
     if (edition.works && edition.works[0]) {
       const workKey = edition.works[0].key;
-      const workResponse = await axios.get(`${OPEN_LIBRARY_BASE}${workKey}.json`);
+      const workResponse = await openLibraryClient.get(`${workKey}.json`);
 
       return {
         success: true,
@@ -109,7 +119,7 @@ export const getBookByISBN = async (isbn) => {
 export const getAuthorDetails = async (authorId) => {
   try {
     const cleanAuthorId = authorId.replace(/^\/authors\//, '');
-    const response = await axios.get(`${OPEN_LIBRARY_BASE}/authors/${cleanAuthorId}.json`);
+    const response = await openLibraryClient.get(`/authors/${cleanAuthorId}.json`);
 
     return {
       success: true,

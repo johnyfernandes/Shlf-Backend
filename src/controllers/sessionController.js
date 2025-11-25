@@ -1,6 +1,25 @@
 import { ReadingSession, Book } from '../models/index.js';
 import { validationResult } from 'express-validator';
-import { Op } from 'sequelize';
+
+const buildBookOwnershipWhere = (bookId, userId, deviceId) => {
+  if (userId) {
+    return { id: bookId, userId };
+  }
+  if (deviceId) {
+    return { id: bookId, deviceId, userId: null };
+  }
+  return null;
+};
+
+const buildOwnedBookWhere = (userId, deviceId) => {
+  if (userId) {
+    return { userId };
+  }
+  if (deviceId) {
+    return { deviceId, userId: null };
+  }
+  return null;
+};
 
 /**
  * Create a reading session
@@ -19,16 +38,17 @@ export const createSession = async (req, res) => {
     const userId = req.userId;
     const deviceId = req.deviceId;
 
+    const ownershipWhere = buildBookOwnershipWhere(bookId, userId, deviceId);
+
+    if (!ownershipWhere) {
+      return res.status(401).json({
+        success: false,
+        error: 'User or device must be provided'
+      });
+    }
+
     // Verify book belongs to user/device
-    const book = await Book.findOne({
-      where: {
-        id: bookId,
-        [Op.or]: [
-          { userId: userId || null },
-          { deviceId: deviceId || null }
-        ]
-      }
-    });
+    const book = await Book.findOne({ where: ownershipWhere });
 
     if (!book) {
       return res.status(404).json({
@@ -70,16 +90,17 @@ export const getBookSessions = async (req, res) => {
     const userId = req.userId;
     const deviceId = req.deviceId;
 
+    const ownershipWhere = buildBookOwnershipWhere(bookId, userId, deviceId);
+
+    if (!ownershipWhere) {
+      return res.status(401).json({
+        success: false,
+        error: 'User or device must be provided'
+      });
+    }
+
     // Verify book belongs to user/device
-    const book = await Book.findOne({
-      where: {
-        id: bookId,
-        [Op.or]: [
-          { userId: userId || null },
-          { deviceId: deviceId || null }
-        ]
-      }
-    });
+    const book = await Book.findOne({ where: ownershipWhere });
 
     if (!book) {
       return res.status(404).json({
@@ -114,14 +135,18 @@ export const getAllSessions = async (req, res) => {
     const userId = req.userId;
     const deviceId = req.deviceId;
 
+    const ownedBookWhere = buildOwnedBookWhere(userId, deviceId);
+
+    if (!ownedBookWhere) {
+      return res.status(401).json({
+        success: false,
+        error: 'User or device must be provided'
+      });
+    }
+
     // Get all user's/device's books
     const books = await Book.findAll({
-      where: {
-        [Op.or]: [
-          { userId: userId || null },
-          { deviceId: deviceId || null }
-        ]
-      },
+      where: ownedBookWhere,
       attributes: ['id']
     });
 
@@ -164,16 +189,21 @@ export const updateSession = async (req, res) => {
     const userId = req.userId;
     const deviceId = req.deviceId;
 
-    const session = await ReadingSession.findByPk(id, {
+    const ownershipWhere = buildOwnedBookWhere(userId, deviceId);
+
+    if (!ownershipWhere) {
+      return res.status(401).json({
+        success: false,
+        error: 'User or device must be provided'
+      });
+    }
+
+    const session = await ReadingSession.findOne({
+      where: { id },
       include: [{
         model: Book,
         as: 'book',
-        where: {
-          [Op.or]: [
-            { userId: userId || null },
-            { deviceId: deviceId || null }
-          ]
-        }
+        where: ownershipWhere
       }]
     });
 
@@ -217,16 +247,21 @@ export const deleteSession = async (req, res) => {
     const userId = req.userId;
     const deviceId = req.deviceId;
 
-    const session = await ReadingSession.findByPk(id, {
+    const ownershipWhere = buildOwnedBookWhere(userId, deviceId);
+
+    if (!ownershipWhere) {
+      return res.status(401).json({
+        success: false,
+        error: 'User or device must be provided'
+      });
+    }
+
+    const session = await ReadingSession.findOne({
+      where: { id },
       include: [{
         model: Book,
         as: 'book',
-        where: {
-          [Op.or]: [
-            { userId: userId || null },
-            { deviceId: deviceId || null }
-          ]
-        }
+        where: ownershipWhere
       }]
     });
 

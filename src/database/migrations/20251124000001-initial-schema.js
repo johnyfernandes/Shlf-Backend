@@ -231,51 +231,9 @@ export async function up(queryInterface) {
   await queryInterface.addIndex('reading_sessions', ['bookId']);
   await queryInterface.addIndex('reading_sessions', ['date']);
 
-  // Create reading_goals table
-  await queryInterface.createTable('reading_goals', {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
-    },
-    userId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id'
-      },
-      onDelete: 'CASCADE'
-    },
-    year: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    targetBooks: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    targetPages: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false
-    }
-  });
-
-  // Create reading_goals indexes
-  await queryInterface.addIndex('reading_goals', ['userId', 'year'], { unique: true });
-  await queryInterface.addIndex('reading_goals', ['year']);
 }
 
 export async function down(queryInterface) {
-  await queryInterface.dropTable('reading_goals');
   await queryInterface.dropTable('reading_sessions');
   await queryInterface.dropTable('books');
   await queryInterface.dropTable('users');

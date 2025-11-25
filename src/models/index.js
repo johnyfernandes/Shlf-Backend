@@ -2,7 +2,6 @@ import sequelize from '../config/database.js';
 import User from './User.js';
 import Book from './Book.js';
 import ReadingSession from './ReadingSession.js';
-import ReadingGoal from './ReadingGoal.js';
 import Collection from './Collection.js';
 import BookCollection from './BookCollection.js';
 
@@ -27,17 +26,6 @@ Book.hasMany(ReadingSession, {
 ReadingSession.belongsTo(Book, {
   foreignKey: 'bookId',
   as: 'book'
-});
-
-User.hasMany(ReadingGoal, {
-  foreignKey: 'userId',
-  as: 'readingGoals',
-  onDelete: 'CASCADE'
-});
-
-ReadingGoal.belongsTo(User, {
-  foreignKey: 'userId',
-  as: 'user'
 });
 
 // Collection relationships
@@ -86,7 +74,6 @@ export {
   User,
   Book,
   ReadingSession,
-  ReadingGoal,
   Collection,
   BookCollection
 };

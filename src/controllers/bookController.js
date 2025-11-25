@@ -101,6 +101,13 @@ export const getBooks = async (req, res) => {
 
     const where = {};
 
+    const allowedSortFields = ['createdAt', 'updatedAt', 'title', 'rating', 'currentPage', 'readingStatus'];
+    const allowedStatuses = ['want_to_read', 'reading', 'completed', 'did_not_finish'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortOrder = (order || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+
     // Filter by user or device
     if (req.userId) {
       where.userId = req.userId;
@@ -116,15 +123,21 @@ export const getBooks = async (req, res) => {
 
     // Filter by reading status
     if (status) {
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid reading status filter'
+        });
+      }
       where.readingStatus = status;
     }
 
-    const offset = (page - 1) * limit;
+    const offset = (safePage - 1) * safeLimit;
 
     const { count, rows: books } = await Book.findAndCountAll({
       where,
-      order: [[sortBy, order]],
-      limit: parseInt(limit),
+      order: [[sortField, sortOrder]],
+      limit: safeLimit,
       offset,
       include: [
         {
